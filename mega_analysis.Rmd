@@ -1,0 +1,112 @@
+---
+title: "mega_analysis"
+output: html_document
+date: "2022-10-24"
+editor_options: 
+chunk_output_type: console 
+---
+
+######################## Preparing Workspace
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+```{r setup, include=FALSE}
+
+suppressPackageStartupMessages({
+
+  library(tidyverse)
+  library(data.table)
+  library(compositions)
+  library(kableExtra)
+  library(plyr)
+  library(cowplot)
+  library(gridExtra)
+  library(ggpubr)
+  library(limma)
+  library(edgeR)
+  library(variancePartition)
+  library(enrichplot)
+  library(clusterProfiler)
+}) 
+
+#source("./common_functions/common_functions.R")
+colorArray = colors()[grep("grey|gray", colors(), invert=TRUE)]
+
+```
+
+
+######################## Differential Expression Testing
+```{r Check the metadata sheet}
+
+# check
+table(METADATA$Group)
+all(rownames(METADATA) == colnames(geneCountsMerged)) 
+
+```
+
+```{r Normalize counts and establish filters for lowly expressed genes}
+
+# Filter genes - This gene filter is placed at 0.5 counts per million
+isexpr.lst = dlply(METADATA, .(Cohort), .fun = function(mtd){
+	rowSums(cpm(geneCountsMerged[,mtd$SampleID])>.5) >= .3*ncol(geneCountsMerged[,mtd$SampleID])
+	})
+isexpr = do.call(rbind, isexpr.lst)
+# keep gene expressed in both cohorts that also fall within the filter
+isexpr = colSums(isexpr) == 2 
+table(isexpr)
+   
+# normalize 
+dge = DGEList(geneCountsMerged[isexpr,]) # remove the [isexpr,METADATA$Cohort==Cohort]
+dge = calcNormFactors(dge, "none") # TMM
+
+```
+
+```{r Differential Expression Mega-Analysis so not Cohort Specific}
+
+form = ~ 0 + Group + Sex + RIN + scale(IntronicRate) + scale(IntragenicRate) + 
+    scale(IntergenicRate) + scale(rRNARate) + Institution*(ageOfDeath + cellFrac_ilr_1 + cellFrac_ilr_2 + cellFrac_ilr_3)
+
+L = makeContrastsDream(form, METADATA, 
+                       contrasts = c(AA_C = "(GroupAAControl + GroupAASCZ) - (GroupCControl + GroupCSCZ)",
+                                      SCZ_control = "(GroupAASCZ + GroupCSCZ) - (GroupAAControl + GroupCControl)",
+                                      Interaction = "(GroupCControl - GroupCSCZ - GroupAAControl + GroupAASCZ)/4"))
+plotContrasts(L)
+vobj_dream = voomWithDreamWeights(dge, form, METADATA, plot = F)
+fit = dream(vobj_dream, form, METADATA, L)
+fit = eBayes(fit)
+
+```
+
+
+######################## Data Frame Creation
+```{r Differentially expressed genelists }
+
+# Get background genes 
+backgroundGenes = data.frame(gene_id = rownames(geneCountsMerged)) %>%
+  dplyr::mutate(id = gene_id) %>%
+  tidyr::separate(id, c('ensembl_gene_id','position'), sep = '\\.')
+
+# Define biomart object
+mart <- biomaRt::useMart(biomart = "ENSEMBL_MART_ENSEMBL", 
+        dataset = "hsapiens_gene_ensembl", 
+        host = "https://dec2021.archive.ensembl.org")
+
+# Query biomart
+Ensemble2HGNC = biomaRt::getBM(attributes = c("ensembl_gene_id", "hgnc_symbol", "description", "percentage_gene_gc_content", "gene_biotype", "chromosome_name"),
+                               filters = "ensembl_gene_id", 
+                               values = backgroundGenes$ensembl_gene_id,
+                               mart = mart)
+```
+
+```{r Specify the contrast you want to see}
+
+DE_mega = topTable(fit, coef = c("AA_C"), number = Inf) %>%
+    tibble::rownames_to_column(var = 'gene_id') %>% 
+    dplyr::left_join(backgroundGenes) %>% 
+    dplyr::left_join(Ensemble2HGNC) 
+
+```
+
