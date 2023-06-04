@@ -41,8 +41,6 @@ colorArray = colors()[grep("grey|gray", colors(), invert=TRUE)]
 ######################## Differential Expression Testing
 ```{r Check the metadata sheet}
 
-# check
-table(METADATA$Group)
 all(rownames(METADATA) == colnames(geneCountsMerged)) 
 
 ```
