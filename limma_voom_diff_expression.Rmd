@@ -38,25 +38,7 @@ colorArray = colors()[grep("grey|gray", colors(), invert=TRUE)]
 
 
 ######################## Differential Expression Testing
-```{r Load the metadata and create interaction naming variable}
-
-# Add a new variable called Group (interaction of Ethnicity and Dx)
-# load metadata 
-
-# load metadata 
-METADATA = METADATA %>%
-  mutate(Dx = as.character(Dx)) %>%
-  mutate(Ethnicity = case_when(Ethnicity == "African-American" ~ "AA", Ethnicity == "Caucasian" ~ "C")) %>%
-  # new variable for interaction of race and disorder
-  mutate(Group = interaction(Ethnicity, Dx, sep = ""))
-table(METADATA$Group)
-
-# check
-all(rownames(METADATA) == colnames(geneCountsMerged)) 
-
-```
-
-```{r Normalize counts and establish filters for lowly expressed genes}
+```{r Normalize Counts and Establish Filters for Lowly Expressed Genes}
 
 # Filter genes - This gene filter is placed at 0.5 counts per million
 isexpr.lst = dlply(METADATA, .(Cohort), .fun = function(mtd){
@@ -64,11 +46,11 @@ isexpr.lst = dlply(METADATA, .(Cohort), .fun = function(mtd){
 	})
 isexpr = do.call(rbind, isexpr.lst)
 
-# keep gene expressed in both cohorts that also fall within the filter
+# Keep gene expressed in both cohorts that also fall within the filter
 isexpr = colSums(isexpr) == 2 
 table(isexpr)
    
-# normalize each cohort separately -- remember this is where limma differs from DESeq2
+# ormalize each cohort separately -- remember this is where limma differs from DESeq2
 # Function of the loops
 # dge list is keeping the cohorts separate
 dge.lst = lapply(levels(METADATA$Cohort), function(Cohort){
@@ -81,18 +63,8 @@ names(dge.lst) = levels(METADATA$Cohort)
 
 ```
 
-```{r Differential expression testing - Cohort Specific}
+```{r Differential Expression Testing}
 
-# Meta-analysis (with package ???) vs Mega
-
-######## Formulas 
-## Formula = more stringent model at the end (including the more Hoffman terms from his analysis)
-## Version of model w Hoffmamn -- may help with defendability
-
-# Cross - Cohort specific analyses + Mega-Analysis
-# remove the rates (?) and cell fractions, rrRNA (maybe get rid of) -- look into the cell proportions maybe (have them as the Y)
-# using the cell fraction as a variable but still treat it logistically (untransformed)
-# maybe threshold the RIN
 form.lst = list(
   `MSSM-Penn-Pitt` = ~ 0 + Group + scale(RIN) + scale(IntronicRate) + scale(IntragenicRate) + scale(IntergenicRate) + scale(rRNARate) + Institution*(ageOfDeath + cellFrac_ilr_1 + cellFrac_ilr_2 + cellFrac_ilr_3),
   `NIMH-HBCC` = ~ 0 + Group + scale(RIN) + scale(IntronicRate) + scale(IntragenicRate) + scale(IntergenicRate) + scale(rRNARate) + scale(ageOfDeath) + scale(cellFrac_ilr_1) + scale(cellFrac_ilr_2) + scale(cellFrac_ilr_3)
@@ -122,7 +94,7 @@ names(fit.lst) = names(dge.lst)
 
 ```
 
-```{r Name the Genes & Merge frames}
+```{r Name the Genes & Merge the Data Frames}
 
 # Get background genes 
 backgroundGenes = data.frame(gene_id = rownames(geneCountsMerged)) %>%
@@ -231,23 +203,8 @@ resid.add = list( Dx_Ethnicity  = eval_residuals( ~ Dx*Ethnicity ),
 ```
 
 
-######################## Check covariates
-```{r Cannonical Correlation Analysis}
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Create the CCA ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-
-# compute Canonical Correlation Analysis (CCA) between all pairs of variables 
-form = ~ Institution + Sex + ageOfDeath + Group + PMI + pH + RIN + IntronicRate + IntragenicRate + IntergenicRate
-
-# heatmap plot 
-cca = canCorPairs(form, METADATA)
-plotCorrMatrix(cca)
-
-```
-
-
 ######################## Dataframe Creation
-```{r Create the dataframes}
+```{r Create the residual dataframes}
 
 # Data frames of race
 residuals_nimh_race = resid.add[3]$Ethnicity$`NIMH-HBCC`
@@ -263,22 +220,22 @@ residuals_nimh_interaction = resid.add[1]$Dx_Ethnicity$`NIMH-HBCC`
   
 ```
 
-#```{r Save the data frames to my directory}
+```{r Save the data frames to my directory}
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Create the csv files -- Race
-write.csv(residuals_nimh_race, "/Users/shuaybsimmons/Desktop/School/UofT MSc Medical Science/Research/Thesis Research/Data Frames/MEGENA residual df /Race\\residuals_nimh_race.csv",row.names=TRUE)
+#write.csv(residuals_nimh_race, "/Users/shuaybsimmons/Desktop/School/UofT MSc Medical Science/Research/Thesis Research/Data Frames/MEGENA residual df /Race\\residuals_nimh_race.csv",row.names=TRUE)
 
-write.csv(residuals_ppm_race, "/Users/shuaybsimmons/Desktop/School/UofT MSc Medical Science/Research/Thesis Research/Data Frames/MEGENA residual df /Race\\residuals_ppm_race.csv", row.names=TRUE)
+#write.csv(residuals_ppm_race, "/Users/shuaybsimmons/Desktop/School/UofT MSc Medical Science/Research/Thesis Research/Data Frames/MEGENA residual df /Race\\residuals_ppm_race.csv", row.names=TRUE)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Create the csv files -- Dx
-write.csv(residuals_nimh_dx, "/Users/shuaybsimmons/Desktop/School/UofT MSc Medical Science/Research/Thesis Research/Data Frames/MEGENA residual df /Dx\\residuals_nimh_dx.csv", row.names=TRUE)
+#write.csv(residuals_nimh_dx, "/Users/shuaybsimmons/Desktop/School/UofT MSc Medical Science/Research/Thesis Research/Data Frames/MEGENA residual df /Dx\\residuals_nimh_dx.csv", row.names=TRUE)
 
-write.csv(residuals_ppm_dx, "/Users/shuaybsimmons/Desktop/School/UofT MSc Medical Science/Research/Thesis Research/Data Frames/MEGENA residual df /Dx\\residuals_ppm_dx.csv", row.names=TRUE)
+#write.csv(residuals_ppm_dx, "/Users/shuaybsimmons/Desktop/School/UofT MSc Medical Science/Research/Thesis Research/Data Frames/MEGENA residual df /Dx\\residuals_ppm_dx.csv", row.names=TRUE)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Create the csv files -- Interaction
-write.csv(residuals_nimh_interaction, "/Users/shuaybsimmons/Desktop/School/UofT MSc Medical Science/Research/Thesis Research/Data Frames/MEGENA residual df /Interaction\\residuals_nimh_interaction.csv", row.names=TRUE)
+#write.csv(residuals_nimh_interaction, "/Users/shuaybsimmons/Desktop/School/UofT MSc Medical Science/Research/Thesis Research/Data Frames/MEGENA residual df /Interaction\\residuals_nimh_interaction.csv", row.names=TRUE)
 
-write.csv(residuals_ppm_interaction, "/Users/shuaybsimmons/Desktop/School/UofT MSc Medical Science/Research/Thesis Research/Data Frames/MEGENA residual df /Interaction\\residuals_ppm_interaction.csv", row.names=TRUE)
+#write.csv(residuals_ppm_interaction, "/Users/shuaybsimmons/Desktop/School/UofT MSc Medical Science/Research/Thesis Research/Data Frames/MEGENA residual df /Interaction\\residuals_ppm_interaction.csv", row.names=TRUE)
 
 
 
