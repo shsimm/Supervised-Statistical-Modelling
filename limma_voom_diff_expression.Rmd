@@ -5,7 +5,7 @@ date: "1/19/2023"
 output: html_document
 ---
 
-######################## Preparing Workspace
+######################## Preparing Work Space
 ```{r setup, include=FALSE}
 
 knitr::opts_chunk$set(echo = TRUE)
