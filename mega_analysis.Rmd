@@ -64,7 +64,7 @@ dge = calcNormFactors(dge, "none") # TMM
 
 ```{r Differential Expression Mega-Analysis so not Cohort Specific}
 
-form = ~ 0 + Group + scale(RIN) + scale(IntronicRate) + scale(IntragenicRate) + scale(IntergenicRate) + scale(rRNARate) + Institution*(ageOfDeath + cellFrac_ilr_1 + cellFrac_ilr_2 + cellFrac_ilr_3)
+form = ~ 0 + Group + Sex + scale(RIN) + scale(IntronicRate) + scale(IntragenicRate) + scale(IntergenicRate) + scale(rRNARate) + Institution*(ageOfDeath + cellFrac_ilr_1 + cellFrac_ilr_2 + cellFrac_ilr_3)
 
 L = makeContrastsDream(form, METADATA, 
                        contrasts = c(AA_C = "(GroupAAControl + GroupAASCZ) - (GroupCControl + GroupCSCZ)",

@@ -66,8 +66,8 @@ names(dge.lst) = levels(METADATA$Cohort)
 ```{r Differential Expression Testing}
 
 form.lst = list(
-  `MSSM-Penn-Pitt` = ~ 0 + Group + scale(RIN) + scale(IntronicRate) + scale(IntragenicRate) + scale(IntergenicRate) + scale(rRNARate) + Institution*(ageOfDeath + cellFrac_ilr_1 + cellFrac_ilr_2 + cellFrac_ilr_3),
-  `NIMH-HBCC` = ~ 0 + Group + scale(RIN) + scale(IntronicRate) + scale(IntragenicRate) + scale(IntergenicRate) + scale(rRNARate) + scale(ageOfDeath) + scale(cellFrac_ilr_1) + scale(cellFrac_ilr_2) + scale(cellFrac_ilr_3)
+  `MSSM-Penn-Pitt` = ~ 0 + Group + Sex + scale(RIN) + scale(IntronicRate) + scale(IntragenicRate) + scale(IntergenicRate) + scale(rRNARate) + Institution*(ageOfDeath + cellFrac_ilr_1 + cellFrac_ilr_2 + cellFrac_ilr_3),
+  `NIMH-HBCC` = ~ 0 + Group + Sex + scale(RIN) + scale(IntronicRate) + scale(IntragenicRate) + scale(IntergenicRate) + scale(rRNARate) + scale(ageOfDeath) + scale(cellFrac_ilr_1) + scale(cellFrac_ilr_2) + scale(cellFrac_ilr_3)
   )
 
 # dream analysis
@@ -119,7 +119,7 @@ Ensemble2HGNC = biomaRt::getBM(attributes = c("ensembl_gene_id", "hgnc_symbol", 
 ```{r Specify the contrast you want to see}
 
 DE = lapply(fit.lst, function(FIT){
-  topTable(FIT, coef = c("Interaction"), number = Inf) %>%
+  topTable(FIT, coef = c("AA_C"), number = Inf) %>%
     tibble::rownames_to_column(var = 'gene_id') %>% 
     dplyr::left_join(backgroundGenes) %>% 
     dplyr::left_join(Ensemble2HGNC) 
@@ -138,7 +138,7 @@ de_genes = do.call(rbind, DE) %>%
 dge.comb = cbind(dge.lst$`NIMH-HBCC`$counts,
                  dge.lst$`MSSM-Penn-Pitt`$counts)
 
-form = ~ Group + scale(RIN) + scale(IntronicRate) + scale(IntragenicRate) + scale(IntergenicRate) + scale(rRNARate) + Institution*(ageOfDeath + cellFrac_ilr_1 + cellFrac_ilr_2 + cellFrac_ilr_3)
+form = ~ Group + Sex + scale(RIN) + scale(IntronicRate) + scale(IntragenicRate) + scale(IntergenicRate) + scale(rRNARate) + Institution*(ageOfDeath + cellFrac_ilr_1 + cellFrac_ilr_2 + cellFrac_ilr_3)
 
 vobj_dream = voomWithDreamWeights(dge.comb, form, METADATA, plot = F)
 vp = fitExtractVarPartModel(vobj_dream, form, METADATA)
@@ -167,8 +167,8 @@ dge.lst = lapply(levels(METADATA$Cohort), function(Cohort){
 names(dge.lst) = levels(METADATA$Cohort)
 
 form.lst = list(
-  `MSSM-Penn-Pitt` = ~ Dx*Ethnicity  + scale(RIN) + scale(IntronicRate) + scale(IntragenicRate) + scale(IntergenicRate) + scale(rRNARate) + Institution*(ageOfDeath + cellFrac_ilr_1 + cellFrac_ilr_2 + cellFrac_ilr_3),
-  `NIMH-HBCC` = ~ Dx*Ethnicity + scale(RIN) + scale(IntronicRate) + scale(IntragenicRate) + scale(IntergenicRate) + scale(rRNARate) + scale(ageOfDeath) + scale(cellFrac_ilr_1) + scale(cellFrac_ilr_2) + scale(cellFrac_ilr_3)
+  `MSSM-Penn-Pitt` = ~ Dx*Ethnicity + Sex + scale(RIN) + scale(IntronicRate) + scale(IntragenicRate) + scale(IntergenicRate) + scale(rRNARate) + Institution*(ageOfDeath + cellFrac_ilr_1 + cellFrac_ilr_2 + cellFrac_ilr_3),
+  `NIMH-HBCC` = ~ Dx*Ethnicity + Sex + scale(RIN) + scale(IntronicRate) + scale(IntragenicRate) + scale(IntergenicRate) + scale(rRNARate) + scale(ageOfDeath) + scale(cellFrac_ilr_1) + scale(cellFrac_ilr_2) + scale(cellFrac_ilr_3)
   )
 
 vobj.lst = lapply(dge.lst, function(dge){
@@ -189,7 +189,7 @@ eval_residuals = function( form ){
     i = match(colnames(vobj), rownames(METADATA))
     info = METADATA[i,]
     form_use = form.lst[[info$Cohort[1]]]
-    # Compute residuals which adding back Diagnosis and Sex effects
+    # Compute residuals which adding back Diagnosis and Race effects
     resid.lst = fitVarPartModel(vobj, form_use, info, fxn = f, BPPARAM = SnowParam(18))  
     do.call(rbind, resid.lst)
     })
