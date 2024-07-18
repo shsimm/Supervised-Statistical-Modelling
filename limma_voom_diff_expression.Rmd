@@ -1,6 +1,6 @@
 ---
 title: "limma_voom_diff_expression"
-author: "Shu'ayb Simmons"
+author: "Shay Simmons"
 date: "1/19/2023"
 output: html_document
 ---
