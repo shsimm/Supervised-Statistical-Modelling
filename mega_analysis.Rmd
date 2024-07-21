@@ -1,9 +1,8 @@
 ---
 title: "mega_analysis"
-output: html_document
+author: "Shay Simmons"
 date: "2022-10-24"
-editor_options: 
-chunk_output_type: console 
+output: html_document
 ---
 
 ######################## Preparing Work Space
